@@ -36,43 +36,68 @@ function copyDirectory(src, dest) {
 
 copyDirectory(assetsDir, path.join(distDir, 'assets'));
 
-// Read and convert Markdown content
-const markdownContent = fs.readFileSync(path.join(contentDir, 'index.md'), 'utf-8');
-const htmlContent = marked(markdownContent);
+// Generate pages from markdown
+function generatePage(markdownFile, outputDir) {
+    const markdownContent = fs.readFileSync(markdownFile, 'utf-8');
+    const htmlContent = marked(markdownContent);
 
-// Data for rendering
-const data = {
-    title: "My Static Site",
-    description: "This is a description sample",
-    content: htmlContent
-};
+    const data = {
+        title: "My Static Site",
+        description: "This is a description sample",
+        content: htmlContent
+    };
 
-// Render the EJS template
-const templatePath = path.join(templatesDir, 'index.ejs');
-if (!fs.existsSync(templatePath)) {
-    console.error('Template file not found:', templatePath);
-    process.exit(1);
-}
-
-// Copy files from src to dist
-fs.readdirSync(srcDir).forEach(file => {
-    const srcFile = path.join(srcDir, file);
-    const distFile = path.join(distDir, file);
-    if (fs.lstatSync(srcFile).isDirectory()) {
-        copyDirectory(srcFile, distFile);
-    } else {
-        fs.copyFileSync(srcFile, distFile);
+    const templatePath = path.join(templatesDir, 'index.ejs');
+    if (!fs.existsSync(templatePath)) {
+        console.error('Template file not found:', templatePath);
+        process.exit(1);
     }
-    console.log(`${file} copied to dist`);
-});
 
-// rendering index.html and saving
-try {
-    const template = fs.readFileSync(templatePath, 'utf-8');
-    const renderedHtml = ejs.render(template, data);
-    fs.writeFileSync(path.join(distDir, 'index.html'), renderedHtml);
-    console.log('index.html rendered and saved in dist');
-} catch (error) {
-    console.error('Error reading or rendering template:', error);
-    process.exit(1);
+    try {
+        const template = fs.readFileSync(templatePath, 'utf-8');
+        const renderedHtml = ejs.render(template, data);
+        fs.writeFileSync(path.join(outputDir, 'index.html'), renderedHtml);
+        console.log(`Page generated and saved to ${outputDir}`);
+    } catch (error) {
+        console.error('Error reading or rendering template:', error);
+        process.exit(1);
+    }
 }
+
+// Recursively generate all pages
+function generateAllPages(dir, outputDir) {
+    const items = fs.readdirSync(dir);
+
+    items.forEach(item => {
+        const itemPath = path.join(dir, item);
+        const outputItemDir = path.join(outputDir, item.replace('.md', ''));
+
+        if (fs.lstatSync(itemPath).isDirectory()) {
+            generateAllPages(itemPath, outputItemDir);
+        } else if (path.extname(itemPath) === '.md') {
+            if (!fs.existsSync(outputItemDir)) {
+                fs.mkdirSync(outputItemDir, { recursive: true });
+            }
+            generatePage(itemPath, outputItemDir);
+        }
+    });
+}
+
+// Generate the website
+generateAllPages(contentDir, distDir);
+
+// Copy other static files
+function copyStaticFiles() {
+    fs.readdirSync(srcDir).forEach(file => {
+        const srcFile = path.join(srcDir, file);
+        const distFile = path.join(distDir, file);
+        if (fs.lstatSync(srcFile).isDirectory()) {
+            copyDirectory(srcFile, distFile);
+        } else {
+            fs.copyFileSync(srcFile, distFile);
+        }
+        console.log(`${file} copied to dist`);
+    });
+}
+
+copyStaticFiles();
