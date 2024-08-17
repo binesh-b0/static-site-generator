@@ -1,10 +1,16 @@
 <head>
     <title><%= title %></title>
+    <meta name="description" content="<%= description %>">
+    <meta name="keywords" content="static site, generator, nodejs">
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-    <h1>Welcome to <%= title %>!</h1>
-    <p><%= description %></p>
-    <div><%- content %></div>
+    <%- include('_header.ejs') %>
+    <main>
+        <h1><%= title %></h1>
+        <div><%- content %></div>
+        <p><%= description %></p>
+    </main>
+    <%- include('_footer') %>
     <script src="assets/js/script.js"></script>
 </body>

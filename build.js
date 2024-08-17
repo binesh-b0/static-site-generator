@@ -11,6 +11,7 @@ const distDir = path.join(__dirname, 'dist');
 const templatesDir = path.join(__dirname, 'templates');
 const contentDir = path.join(__dirname, 'content');
 const assetsDir = path.join(__dirname, 'src/assets');
+const siteUrls = []; // Store URLs for sitemap
 
 // Ensure dist directory exists
 if (!fs.existsSync(distDir)) {
@@ -50,12 +51,17 @@ function generatePage(markdownFile, outputDir) {
         content: htmlContent
     };
 
-    const templatePath = path.join(templatesDir, 'index.ejs');
-    const template = fs.readFileSync(templatePath, 'utf-8');
-    const renderedHtml = ejs.render(template, data);
-    
-    fs.writeFileSync(path.join(outputDir, 'index.html'), renderedHtml);
-    console.log(`Page generated and saved to ${outputDir}`);
+    try {
+        const templatePath = path.join(templatesDir, 'index.ejs');
+        const template = fs.readFileSync(templatePath, 'utf-8');
+        const renderedHtml = ejs.render(template, data, { 
+            views: [templatesDir] // Tell EJS where to look for includes
+        });
+        fs.writeFileSync(path.join(outputDir, 'index.html'), renderedHtml);
+        console.log(`Page generated and saved to ${outputDir}`);
+    } catch (error) {
+        console.log('Error generating page:', error);
+    }
 }
 
 // Recursively generate all pages
@@ -72,6 +78,9 @@ function generateAllPages(dir, outputDir) {
             if (!fs.existsSync(outputItemDir)) {
                 fs.mkdirSync(outputItemDir, { recursive: true });
             }
+            const route = `/${path.relative(contentDir, itemPath).replace('.md', '.html')}`;
+            // Store this route for sitemap generation later
+            siteUrls.push({ url: route, changefreq: 'monthly', priority: 0.8 });
             generatePage(itemPath, outputItemDir);
         }
     });
@@ -84,14 +93,31 @@ async function generateSitemap() {
 
     smStream.pipe(writeStream);
 
-    smStream.write({ url: '/', changefreq: 'daily', priority: 1.0 });
-    smStream.write({ url: '/about/', changefreq: 'monthly', priority: 0.8 });
+    siteUrls.forEach(url => smStream.write(url));
 
     smStream.end();
 
     await streamToPromise(smStream);
     console.log('Sitemap generated and saved to dist/sitemap.xml');
 }
+
+const plugins = [];
+
+function registerPlugin(plugin) {
+    plugins.push(plugin);
+}
+
+function runPlugins() {
+    plugins.forEach(plugin => plugin());
+}
+
+// Example of registering and running a plugin
+registerPlugin(() => {
+    console.log("Running custom plugin...");
+    // Custom plugin code
+});
+
+runPlugins();
 
 // Generate the website and sitemap
 generateAllPages(contentDir, distDir);
