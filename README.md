@@ -1,7 +1,3 @@
-Here's a basic `README.md` for your static site generator project:
-
----
-
 # Static Site Generator
 
 A Node.js-based static site generator that converts Markdown files into HTML, supports EJS templating, and generates a sitemap. This generator is designed to be simple yet powerful, allowing for easy site creation with automated build processes.
@@ -24,7 +20,7 @@ A Node.js-based static site generator that converts Markdown files into HTML, su
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/static-site-generator.git
+   git clone git@github.com:binesh-b0/static-site-generator.git
    cd static-site-generator
    ```
 
@@ -68,6 +64,3 @@ Contributions are welcome! Please open an issue or submit a pull request.
 
 This project is licensed under the MIT License.
 
----
-
-Feel free to modify the content based on any specific project details or preferences!
