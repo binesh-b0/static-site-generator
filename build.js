@@ -2,7 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const ejs = require('ejs');
 const { marked } = require('marked');
+const { SitemapStream, streamToPromise } = require('sitemap');
+const { createWriteStream } = require('fs');
 
+// Directories
 const srcDir = path.join(__dirname, 'src');
 const distDir = path.join(__dirname, 'dist');
 const templatesDir = path.join(__dirname, 'templates');
@@ -48,20 +51,11 @@ function generatePage(markdownFile, outputDir) {
     };
 
     const templatePath = path.join(templatesDir, 'index.ejs');
-    if (!fs.existsSync(templatePath)) {
-        console.error('Template file not found:', templatePath);
-        process.exit(1);
-    }
-
-    try {
-        const template = fs.readFileSync(templatePath, 'utf-8');
-        const renderedHtml = ejs.render(template, data);
-        fs.writeFileSync(path.join(outputDir, 'index.html'), renderedHtml);
-        console.log(`Page generated and saved to ${outputDir}`);
-    } catch (error) {
-        console.error('Error reading or rendering template:', error);
-        process.exit(1);
-    }
+    const template = fs.readFileSync(templatePath, 'utf-8');
+    const renderedHtml = ejs.render(template, data);
+    
+    fs.writeFileSync(path.join(outputDir, 'index.html'), renderedHtml);
+    console.log(`Page generated and saved to ${outputDir}`);
 }
 
 // Recursively generate all pages
@@ -83,8 +77,26 @@ function generateAllPages(dir, outputDir) {
     });
 }
 
-// Generate the website
+// Generate sitemap
+async function generateSitemap() {
+    const smStream = new SitemapStream({ hostname: 'https://binesh-b0.github.io/static-site-generator/' });
+    const writeStream = createWriteStream(path.join(distDir, 'sitemap.xml'));
+
+    smStream.pipe(writeStream);
+
+    smStream.write({ url: '/', changefreq: 'daily', priority: 1.0 });
+    smStream.write({ url: '/about/', changefreq: 'monthly', priority: 0.8 });
+
+    smStream.end();
+
+    await streamToPromise(smStream);
+    console.log('Sitemap generated and saved to dist/sitemap.xml');
+}
+
+// Generate the website and sitemap
 generateAllPages(contentDir, distDir);
+
+generateSitemap().catch(console.error);
 
 // Copy other static files
 function copyStaticFiles() {
