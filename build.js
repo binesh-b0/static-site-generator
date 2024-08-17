@@ -7,11 +7,34 @@ const srcDir = path.join(__dirname, 'src');
 const distDir = path.join(__dirname, 'dist');
 const templatesDir = path.join(__dirname, 'templates');
 const contentDir = path.join(__dirname, 'content');
+const assetsDir = path.join(__dirname, 'src/assets');
 
 // Ensure dist directory exists
 if (!fs.existsSync(distDir)) {
     fs.mkdirSync(distDir);
 }
+
+// Copy assets
+function copyDirectory(src, dest) {
+    if (!fs.existsSync(dest)) {
+        fs.mkdirSync(dest, { recursive: true });
+    }
+
+    const files = fs.readdirSync(src);
+
+    files.forEach(file => {
+        const srcFile = path.join(src, file);
+        const destFile = path.join(dest, file);
+
+        if (fs.lstatSync(srcFile).isDirectory()) {
+            copyDirectory(srcFile, destFile);
+        } else {
+            fs.copyFileSync(srcFile, destFile);
+        }
+    });
+}
+
+copyDirectory(assetsDir, path.join(distDir, 'assets'));
 
 // Read and convert Markdown content
 const markdownContent = fs.readFileSync(path.join(contentDir, 'index.md'), 'utf-8');
@@ -35,7 +58,11 @@ if (!fs.existsSync(templatePath)) {
 fs.readdirSync(srcDir).forEach(file => {
     const srcFile = path.join(srcDir, file);
     const distFile = path.join(distDir, file);
-    fs.copyFileSync(srcFile, distFile);
+    if (fs.lstatSync(srcFile).isDirectory()) {
+        copyDirectory(srcFile, distFile);
+    } else {
+        fs.copyFileSync(srcFile, distFile);
+    }
     console.log(`${file} copied to dist`);
 });
 
